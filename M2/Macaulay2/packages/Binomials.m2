@@ -410,7 +410,7 @@ isSupportOfRowsAtMostTwo = C ->(
 -- assert (isSupportOfRowsAtMostTwo matrix{{1,1,0,0},{0,0,1,1}} == true)
 -- ///
 
-isBinomialGroebnerFree Ideal := (Boolean,Matrix) => I ->(    
+isBinomialGroebnerFree = I ->(    
     R:=ring I;
     S:=R;
     F:=set flatten entries gens I;
