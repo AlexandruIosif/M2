@@ -371,9 +371,9 @@ reducedRowEchelon = C ->(
     C)
 
 
-TEST ///
-assert (reducedRowEchelon matrix{{1,0},{0,1}} == (matrix{{1, 0}, {0, 1}}))
-///
+-- TEST ///
+-- assert (reducedRowEchelon matrix{{1,0},{0,1}} == (matrix{{1, 0}, {0, 1}}))
+-- ///
 
 
 --Not implemented yet:
@@ -396,10 +396,10 @@ gensMinimalDegree = F ->(
     Fmin=matrix{toList Fmin};
     Fmin)
 
-TEST ///
-R = QQ[x]
-assert (gensMinimalDegree ideal (x)== matrix{{x}})
-///
+-- TEST ///
+-- R = QQ[x]
+-- assert (gensMinimalDegree ideal (x)== matrix{{x}})
+-- ///
 
 --detects whether or not a matrix has at most two non zero entries in each row
 isSupportOfRowsAtMostTwo = C ->(
@@ -413,9 +413,9 @@ isSupportOfRowsAtMostTwo = C ->(
 		);
 	    true)
 
-TEST ///
-assert (isSupportOfRowsAtMostTwo matrix{{1,1,0,0},{0,0,1,1}} == true)
-///
+-- TEST ///
+-- assert (isSupportOfRowsAtMostTwo matrix{{1,1,0,0},{0,0,1,1}} == true)
+-- ///
 
     
 
