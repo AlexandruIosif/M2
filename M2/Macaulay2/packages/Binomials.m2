@@ -344,8 +344,8 @@ randomBinomialIdeal = (R,numge,maxdeg, maxwidth, homog) -> (
      ideal (mingens ideal(ge)))
  
 
-isBinomial = method (Options => {GroebnerFree => false})
-isBinomial Ideal := o -> I -> (
+isBinomial = method (Options => {GroebnerFree => true})
+isBinomial Ideal := Ideal => o -> I -> (
      -- Checking binomiality with a reduced gb.
      if o#GroebnerFree  then 
 	   isBinomialGroebnerFree I
@@ -1778,18 +1778,22 @@ document {
 
 document {
      Key => {isBinomial,
-	     isUnital},
+	     isUnital,
+	     (isBinomial,Ideal)},
      Headline => "testing for unital binomial ideals",
      Usage => "isBinomial I; isUnital I",
      Inputs => {
           "I" => {"an ideal"}},
      Outputs => {
-          {"true if I is binomial, or unital respectively."} },
+          {"true if I is binomial, or unital respectively using 
+	      GroebnerFree method if not specified."}},
+     "Function isBinomial returns 'true' if the ideal is binomial or unital using the ", TO GroebnerFree, " option.",      
      EXAMPLE {
 	  "R = QQ[x,y,z]",
 	  "isBinomial ideal(x^2)",
 	  "isBinomial ideal(x-y+z,z)",
 	  "isBinomial ideal(x^3-x)",
+	  "isBinomial (ideal(x+y+z),GroebnerFree=>false)",
 	  "isUnital ideal (x-z,z-y)",
 	  "isUnital ideal (x+z)",
 	  "isUnital ideal (x^2)"
@@ -1975,6 +1979,15 @@ document { Key => {CellVariables, [partialCharacter,CellVariables],
      specialized functions for cellular ideals. ",
      SeeAlso => {cellularBinomialPrimaryDecomposition,cellularBinomialAssociatedPrimes}}
 
+document{
+    Key => {GroebnerFree,
+	[isBinomial,GroebnerFree]},
+    Headline => "Groebner Free method",
+    "GroebnerFree is a method that tests whether an ideal is binomial without computing Groebner
+    basis. The default option is true meaning that the computation of Groebner Basis can be omitted.
+    If the option is set to be 'false', then isBinomial computes the Groebner basis to detect whether
+    the ideal is binomial."}
+
 document {
      Key => {ReturnCellVars,
 	  [isCellular,ReturnCellVars]},
@@ -2109,6 +2122,12 @@ R = QQ[x,y]
 assert(binomialIsPrime ideal x^2 == false)
 assert(binomialIsPrime ideal (x^2-y^2) == false)
 assert(binomialIsPrime ideal (x-y) == true)
+///
+
+TEST ///
+R = QQ[x,y,z]
+assert(isBinomial (ideal(x+y+z),GroebnerFree=>false) == false)
+assert(isBinomial (ideal(x^2)) == true)
 ///
 
 end
