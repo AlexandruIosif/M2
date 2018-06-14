@@ -62,6 +62,7 @@ export {
      "isCellular",
      "isBinomial",
      "isUnital",
+     "gensBinomialBasis",
      -- input related
      "makeBinomial",
      "latticeBasisIdeal",
@@ -85,6 +86,7 @@ export {
 --   "gensMinimalDegree",
 --   "isSupportOfRowsAtMostTwo",
 --   "isBinomialGroebnerFree",
+
      -- Not in the interface:
 --     "axisSaturate",
 --     "cellVars",
@@ -347,8 +349,9 @@ randomBinomialIdeal = (R,numge,maxdeg, maxwidth, homog) -> (
 isBinomial = method (Options => {GroebnerFree => true})
 isBinomial Ideal := Ideal => o -> I -> (
      -- Checking binomiality with a reduced gb.
-     if o#GroebnerFree  then 
-	   isBinomialGroebnerFree I
+     if o#GroebnerFree  then (
+	 return (isBinomialGroebnerFree I)#0;
+     )
      else (
          ge := flatten entries gens gb I;
          for g in ge do (
@@ -360,6 +363,49 @@ isBinomial Ideal := Ideal => o -> I -> (
 
 ----Temporary functions begin; here we write the functions for detecting
 ----Binomiality with Groebner free methods
+
+--the following function generates a binomial basis of an ideal if exists
+gensBinomialBasis = I -> (
+    R:=ring I;
+    S:=R;
+    F:=set flatten entries gens I;
+    Fl:=toList F;
+    tttt := symbol tttt;
+--    
+    resultT := isBinomialGroebnerFree I;
+--    
+    if isHomogeneous ideal(Fl) == true then (
+        if resultT#0 == false then (
+           print "Binomial Basis does not exist"; 
+	   return;
+	)
+        else (
+           return flatten entries resultT#1;
+	);
+    )
+    else (
+    	if resultT#0 == false then (
+	    ge := flatten entries gens gb I;
+	    for g in ge do (
+                if #(terms g) > 2 then (
+		    print "Binomial Basis does not exist";
+		    return null;
+		)
+	    );
+	    return ge;
+	)
+        else(
+       	    J := resultT#1;
+       	    S = ring flatten entries J;
+       	    use S;
+       	    B := sub(sub(J,{tttt_0=>1}),R);
+       	    return flatten entries B;
+	);
+     );
+     use R;
+)
+
+
 
 --the follwong returns the row echelon form of a matrix
 reducedRowEchelon = C ->(
@@ -448,16 +494,17 @@ isBinomialGroebnerFree = I ->(
 	     toList set flatten entries monomials matrix{toList F});
 	A= reducedRowEchelon transpose (A);
 	M=transpose M;
-	if isSupportOfRowsAtMostTwo(A)===false then return false;
+	if isSupportOfRowsAtMostTwo(A)===false then return {false,{}};
 	B=B|flatten entries sub(sub(A*M,R),S);
 	d=(degree (A*M)_0_0)_0;
 	F=F-(set Fmin);
-	if F === set{} then return true; --this avoids the next step in case F is empty
+	if F === set{} then return {true, matrix{B}}; --this avoids the next step in case F is empty
 	R=R/(ideal flatten entries (A*M));
 	F = set flatten entries gens sub(ideal toList F+Id,R);
 	F=F-set{0_R};);
-    true)
-     
+    use R;
+    {true,{}})
+
      
     
 ----Need Test!
@@ -1799,6 +1846,26 @@ document {
 	  "isUnital ideal (x^2)"
           },
      SeeAlso => {isCellular}}
+ 
+document {
+    Key => {gensBinomialBasis},
+    Headline => "generates binomial basis for an ideal",
+    Usage => "gensBinomialBasis I",
+    Inputs => {
+	"I" => {"an ideal"}
+    },
+    Outputs => {
+	"a binomial basis in form of a list if I has a binomial basis. If ideal I does not have a binomial
+	basis, a message 'Binomial basis does not exist' will be printed out "},
+    EXAMPLE {
+	"R = QQ[x,y,z]",
+	"I = ideal (x^3+y^2+z,x+z)",
+	"gensBinomialBasis I",
+	"use R",
+	"J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
+	"gensBinomialBasis J"
+	}
+}
 
 -- input related functions
 document {
@@ -2130,6 +2197,13 @@ assert(isBinomial (ideal(x+y+z),GroebnerFree=>false) == false)
 assert(isBinomial (ideal(x^2)) == true)
 ///
 
+TEST ///
+R = QQ[x,y,z]
+assert(gensBinomialBasis (ideal (x^3+y^2+z,x+z)) == null)
+assert(gensBinomialBasis (ideal (x^2+x*y, z^2+x^2, x*z+y*z)) == 
+    {x^2+x*y,x^2+z^2,x*z+y*z})
+///
+
 end
 ------------------------------------------------------------
 restart
@@ -2139,9 +2213,12 @@ check "Binomials"
 
 R = QQ[x,y,z]
 I = ideal (x^3+y^2+z,x+z)
-isBinomialGF I
+gensBinomialBasis I
+use R;
+J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)
+gensBinomialBasis J
 isBinomial I
-
+gens gb I
 
 restart
 needsPackage "Binomials";
