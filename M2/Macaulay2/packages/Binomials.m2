@@ -62,7 +62,7 @@ export {
      "isCellular",
      "isBinomial",
      "isUnital",
-     "gensBinomialBasis",
+     "binomialBasis",
      -- input related
      "makeBinomial",
      "latticeBasisIdeal",
@@ -81,7 +81,7 @@ export {
      "idealFromCharacter",  -- should be renamed to ideal once M2 supports this
      "randomBinomialIdeal",
      "extractInclusionMinimalIdeals",
---   "inverseRowEchelon",
+--   "reducedRowEchelon",
 --   "quotientRing",
 --   "gensMinimalDegree",
 --   "isSupportOfRowsAtMostTwo",
@@ -365,47 +365,45 @@ isBinomial Ideal := Ideal => o -> I -> (
 ----Binomiality with Groebner free methods
 
 --the following function generates a binomial basis of an ideal if exists
-gensBinomialBasis = I -> (
+binomialBasis = I -> (
     R:=ring I;
     S:=R;
     F:=set flatten entries gens I;
     Fl:=toList F;
     tttt := symbol tttt;
---    
+    --    
     resultT := isBinomialGroebnerFree I;
---    
+    --    
     if isHomogeneous ideal(Fl) == true then (
         if resultT#0 == false then (
-           print "Binomial Basis does not exist"; 
-	   return;
-	)
+            print "Error: the ideal is not binomial";
+	    return;
+	    )
         else (
-           return flatten entries resultT#1;
-	);
-    )
+            return resultT#1;
+	    );
+    	)
     else (
     	if resultT#0 == false then (
 	    ge := flatten entries gens gb I;
 	    for g in ge do (
                 if #(terms g) > 2 then (
-		    print "Binomial Basis does not exist";
+		    print "Error: the ideal is not binomial";
+		    use R;
 		    return null;
-		)
+		    )
+	    	);	
+	    return matrix {ge};
+	    )
+    	else(
+	    f := map (R,ring resultT#1,flatten entries vars R | {1_R});
+	    J := f(resultT#1);
+	    use R;
+	    return J;
 	    );
-	    return ge;
-	)
-        else(
-       	    J := resultT#1;
-       	    S = ring flatten entries J;
-       	    use S;
-       	    B := sub(sub(J,{tttt_0=>1}),R);
-       	    return flatten entries B;
-	);
-     );
-     use R;
-)
-
-
+     	);
+--    use R;
+    )
 
 --the follwong returns the row echelon form of a matrix
 reducedRowEchelon = C ->(
@@ -502,10 +500,8 @@ isBinomialGroebnerFree = I ->(
 	R=R/(ideal flatten entries (A*M));
 	F = set flatten entries gens sub(ideal toList F+Id,R);
 	F=F-set{0_R};);
-    use R;
-    {true,{}})
-
-     
+--    use R;
+    {true,{}})     
     
 ----Need Test!
 
@@ -1848,9 +1844,9 @@ document {
      SeeAlso => {isCellular}}
  
 document {
-    Key => {gensBinomialBasis},
+    Key => {binomialBasis},
     Headline => "generates binomial basis for an ideal",
-    Usage => "gensBinomialBasis I",
+    Usage => "binomialBasis I",
     Inputs => {
 	"I" => {"an ideal"}
     },
@@ -1860,10 +1856,10 @@ document {
     EXAMPLE {
 	"R = QQ[x,y,z]",
 	"I = ideal (x^3+y^2+z,x+z)",
-	"gensBinomialBasis I",
+	"binomialBasis I",
 	"use R",
 	"J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
-	"gensBinomialBasis J"
+	"binomialBasis J"
 	}
 }
 
@@ -2199,8 +2195,8 @@ assert(isBinomial (ideal(x^2)) == true)
 
 TEST ///
 R = QQ[x,y,z]
-assert(gensBinomialBasis (ideal (x^3+y^2+z,x+z)) == null)
-assert(gensBinomialBasis (ideal (x^2+x*y, z^2+x^2, x*z+y*z)) == 
+assert(binomialBasis (ideal (x^3+y^2+z,x+z)) == null)
+assert(binomialBasis (ideal (x^2+x*y, z^2+x^2, x*z+y*z)) == 
     {x^2+x*y,x^2+z^2,x*z+y*z})
 ///
 
@@ -2212,11 +2208,17 @@ installPackage "Binomials"
 check "Binomials"
 
 R = QQ[x,y,z]
+I = ideal (x^3+y^2,x+z)
+binomialBasis I
+--use R;
+J = ideal (x^2+x*y, z^2+x^2, x*z+y*z,x+y)
+
+R = QQ[x,y,z]
 I = ideal (x^3+y^2+z,x+z)
-gensBinomialBasis I
-use R;
+binomialBasis I
+--use R;
 J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)
-gensBinomialBasis J
+binomialBasis J
 isBinomial I
 gens gb I
 
