@@ -1852,14 +1852,13 @@ document {
     },
     Outputs => {
 	"a binomial basis in form of a list if I has a binomial basis. If ideal I does not have a binomial
-	basis, a message 'Binomial basis does not exist' will be printed out "},
+	basis, a message 'Error: the ideal is not binomial' will be printed out "},
     EXAMPLE {
 	"R = QQ[x,y,z]",
-	"I = ideal (x^3+y^2+z,x+z)",
-	"binomialBasis I",
-	"use R",
 	"J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
-	"binomialBasis J"
+	"binomialBasis J",
+	"I = ideal (x^3+y^2+z,x+z)",
+	"binomialBasis I"
 	}
 }
 
@@ -2191,13 +2190,14 @@ TEST ///
 R = QQ[x,y,z]
 assert(isBinomial (ideal(x+y+z),GroebnerFree=>false) == false)
 assert(isBinomial (ideal(x^2)) == true)
+assert(isBinomial (ideal(x+y,y+z^2+x)) == true)
 ///
 
 TEST ///
 R = QQ[x,y,z]
 assert(binomialBasis (ideal (x^3+y^2+z,x+z)) == null)
-assert(binomialBasis (ideal (x^2+x*y, z^2+x^2, x*z+y*z)) == 
-    {x^2+x*y,x^2+z^2,x*z+y*z})
+assert(binomialBasis (ideal (x^2-x*y, x*y-y^2)) == (matrix{{y^2-x^2,x*y-x^2}}))
+--assert((binomialBasis (ideal (x^2+x*y, z^2+x^2+x*y))) == (matrix{{z^2,x^2+x*y}}) )
 ///
 
 end
