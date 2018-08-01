@@ -526,11 +526,11 @@ primeIdealParameterization = I -> (
     --make a matrix
     for e in idealList do(
 	coeff := flatten entries (coefficients e)#1;
-	if (coeff#0 == -coeff#1) then (
+	if (coeff#0 == -coeff#1) then(
 	    exponentList = exponentList|{(exponents e)#0 - (exponents e)#1};
 	    ) else (
 	    print "inconsistent coefficients";
-	    )
+	    );
         );
     exponentMatrix = matrix exponentList;
     output := entries transpose gens ker exponentMatrix;
@@ -589,15 +589,15 @@ parameterize = I ->(
     );
     OpMList := new List from entries gens ker OpM;
     coefff := {};
-    if (OpMList#-1#-1 =!= 1_(ring OpM)) do (
-    	print("Error: Not Implemented for Q-rational yet")
+    if (OpMList#-1#-1 =!= 1_(ring OpM)) then (
+    	print("Error: Not Implemented for Q-rational yet");
     );
-    OpMList = OpMList_{0..(length OpMList - 2)}
+    OpMList = OpMList_{0..(length OpMList - 2)};
     for e in OpMList do (
 	temp := coefficients e#-1;
         temp1 := sub(temp#0,storeVarMap);
 	i = 0;
-	varT = 1_QQ;
+	varT := 1_QQ;
 	temp2 := sub(temp#1, QQ);
 	temp1 = sub(temp1, QQ);
 	while i < numColumns temp#0 do (
@@ -613,41 +613,39 @@ parameterize = I ->(
 para = I ->(
     idealList := flatten entries gens I;
     exponentList := {};
-    exponentMatrix := matrix{{}};
     --check whether ideal is prime
     if (binomialIsPrime I == false) then (
 	print "Error: Binomial is not prime";
 	);
-    --check whether the coefficients of terms are the same
-    --make a matrix
+    assert(binomialIsPrime I == true);
+    --extract exponents into a matrix & put constant term at the last column
     for e in idealList do(
 	coeff := flatten entries (coefficients e)#1;
-	if (coeff#1 != 0) then (
-	    exponentList = exponentList|{(exponents e)#0 - (exponents e)#1|{-coeff#1/coeff#0}};
-	    ) else (
-	    print "second term needs to be minus"
-	    )
+	exponentList = exponentList|{(exponents e)#0 - (exponents e)#1|{-coeff#1/coeff#0}};
         );
-    exponentMatrix = matrix exponentList;
+    exponentMatrix := matrix exponentList;
+    --store the mapping from v_i to i-th constant term of the binomials
     r := numRows exponentMatrix;
     v := symbol v;
     R:=ring I; S:=R[v_1..v_r,MonomialOrder => Lex];
-    exponentList = (transpose exponentList);
+    exponentList = transpose exponentList;
     i:= 0;
     storeVarMap := {};
     while (i < r) do (
-	storeVarMap = storeVarMap|{v_(i+1)_S => sub((exponentList#-1#i),QQ)};
+	storeVarMap = storeVarMap|{v_(i+1)_S => (exponentList#-1#i)};
 	i = i+1;
 	);
+    --perform the substitution of constant term and compute the kernel to find parameterization
     exponentList = exponentList_{0..(length exponentList-2)};
     exponentMatrix = matrix( transpose (exponentList|entries (id_(ZZ^r)*-1)));
     solution := gens gb ker exponentMatrix;
+    t := symbol t;
     G := QQ[t_1..t_(numColumns solution-r),MonomialOrder=>Lex,Inverses=>true];
-    vectorVars := flatten entries( vars G|sub(sub(vars S, storeVarMap),QQ));
-    use (flattenRing G)_0;
-    L = entries solution;
-    T := apply(L,l->product apply(vectorVars,l,(i,j)->i^j));   
-    T_{0..numColumns vars ring I -1}
+    vectorVars := flatten entries(vars G|sub(sub(vars S, storeVarMap),QQ));
+    use G;
+    L := entries solution;
+    T := apply(L,l->product apply(vectorVars,l,(i,j)->i^j));
+    gens ideal T_{0..numColumns vars ring I-1}
     )
 ----Temporary functions end;
 
