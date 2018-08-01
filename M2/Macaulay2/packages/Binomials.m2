@@ -23,7 +23,7 @@
 
 newPackage(
 	"Binomials",
-	Version => "1.2.1",
+	Version => "1.2.2",
 	Date => "January 2018",
 	Authors => {{
 		  Name => "Thomas Kahle",
@@ -55,6 +55,8 @@ export {
      "binomialMinimalPrimes",
      "binomialAssociatedPrimes",
      "binomialSolve",
+     "binomialBasis",
+     "binomialParameterization",
      -- tests
      "binomialIsPrime",
      "binomialIsPrimary",
@@ -62,7 +64,6 @@ export {
      "isCellular",
      "isBinomial",
      "isUnital",
-     "binomialBasis",
      -- input related
      "makeBinomial",
      "latticeBasisIdeal",
@@ -510,122 +511,35 @@ isBinomialGroebnerFree = I ->(
 --    use R;
     {true,{}})     
     
-----Need Test!
 
 
-
-primeIdealParameterization = I -> (
-    idealList := flatten entries gens I;
-    exponentList := {};
-    exponentMatrix := matrix{{}};
-    --check whether ideal is prime
-    if (binomialIsPrime I == false) then (
-	print "Error: Binomial is not prime";
+binomialParameterization = I ->(
+    if (char ring I =!= 0) then (
+	error "Sorry, only implemented for characteristic 0";
 	);
-    --check whether the coefficients of terms are the same
-    --make a matrix
-    for e in idealList do(
-	coeff := flatten entries (coefficients e)#1;
-	if (coeff#0 == -coeff#1) then(
-	    exponentList = exponentList|{(exponents e)#0 - (exponents e)#1};
-	    ) else (
-	    print "inconsistent coefficients";
-	    );
-        );
-    exponentMatrix = matrix exponentList;
-    output := entries transpose gens ker exponentMatrix;
-    return output;
-    --endofFunction
-    )
-
-
--- R = ZZ[x..z];
--- I = ideal(x-y,y-z);
--- primeIdealParameterization I;
-
-parameterize = I ->(
-    idealList := flatten entries gens I;
-    exponentList := {};
-    exponentMatrix := matrix{{}};
-    --check whether ideal is prime
-    if (binomialIsPrime I == false) then (
-	print "Error: Binomial is not prime";
-	);
-    --check whether the coefficients of terms are the same
-    --make a matrix
-    for e in idealList do(
-	coeff := flatten entries (coefficients e)#1;
-	if (coeff#1 != 0) then (
-	    exponentList = exponentList|{(exponents e)#0 - (exponents e)#1|{-coeff#1/coeff#0}};
-	    ) else (
-	    print "second term needs to be minus"
-	    )
-        );
-    exponentMatrix = matrix exponentList;
-    r := numRows exponentMatrix;
-    v := symbol v;
-    R:=ring I; S:=R[v_1..v_r,MonomialOrder => Lex];
-    Op := new MutableList from (transpose exponentList);
-    i:= 0;
-    storeVarMap := {};
-    while (i < r) do (
-	storeVarMap = storeVarMap|{v_(i+1)_S => (Op#-1#i)};
-	i = i+1;
-	);
-    Op#-1 = new List from v_1..v_r;
-    Op = new List from Op;
-    OpM := matrix transpose Op;
-    OpM = reducedRowEchelon OpM;
-    --check pivot positions of smith normal form
-    (D,P,Q) := smithNormalForm OpM;
-    numRow := rank target D;     -- numRow < numCol
-    i = 0;
-    pivotCol := {};
-    while (i < numRow) do (
-    	j := 0;
-	while ((j < rank source D) and (D_(i,j) == 0_(ring D))) do (j = j+1);
-	if (D_(i,j) =!= 1_(ring D)) then (print "ideal is not prime");
-	i = i+1;
-    );
-    OpMList := new List from entries gens ker OpM;
-    coefff := {};
-    if (OpMList#-1#-1 =!= 1_(ring OpM)) then (
-    	print("Error: Not Implemented for Q-rational yet");
-    );
-    OpMList = OpMList_{0..(length OpMList - 2)};
-    for e in OpMList do (
-	temp := coefficients e#-1;
-        temp1 := sub(temp#0,storeVarMap);
-	i = 0;
-	varT := 1_QQ;
-	temp2 := sub(temp#1, QQ);
-	temp1 = sub(temp1, QQ);
-	while i < numColumns temp#0 do (
-	    varT = varT * ((temp1_(0,i))^(temp2_(i,0)));
-	    i=i+1;
-	);
-	coefff = coefff|{varT};
-    );
-    OpMList = ((transpose OpMList)_{0..((length transpose OpMList) - 2)})|{coefff};
-    )
-
-
-para = I ->(
     idealList := flatten entries gens I;
     exponentList := {};
     --check whether ideal is prime
-    if (binomialIsPrime I == false) then (
-	print "Error: Binomial is not prime";
+    if (isBinomial I == false) then (
+	error "Sorry, only implemented for binomial ideals";
 	);
-    assert(binomialIsPrime I == true);
+    if (binomialIsPrime I == false) then (
+	error "Sorry, only implemented for prime binomial ideals";
+	);
     --extract exponents into a matrix & put constant term at the last column
     for e in idealList do(
 	coeff := flatten entries (coefficients e)#1;
+	if (length coeff =!= 2) then (
+	    error "There is a monomial among the generators";
+	    );
 	exponentList = exponentList|{(exponents e)#0 - (exponents e)#1|{-coeff#1/coeff#0}};
         );
     exponentMatrix := matrix exponentList;
     --store the mapping from v_i to i-th constant term of the binomials
     r := numRows exponentMatrix;
+    if (rank exponentMatrix_{0..(numColumns exponentMatrix-2)} =!= r) then (
+	error "The set of generators is not minimal.";
+	);
     v := symbol v;
     R:=ring I; S:=R[v_1..v_r,MonomialOrder => Lex];
     exponentList = transpose exponentList;
@@ -639,14 +553,23 @@ para = I ->(
     exponentList = exponentList_{0..(length exponentList-2)};
     exponentMatrix = matrix( transpose (exponentList|entries (id_(ZZ^r)*-1)));
     solution := gens gb ker exponentMatrix;
+    --check diagonal entries for v's
+    if (solution_{numColumns solution-r..numColumns solution-1}^{numRows solution-r..numRows solution-1} =!= id_(ZZ^r)) then (
+	error "Sorry, only implemented for toric varieties with at least one rational point";
+	);
     t := symbol t;
     G := QQ[t_1..t_(numColumns solution-r),MonomialOrder=>Lex,Inverses=>true];
     vectorVars := flatten entries(vars G|sub(sub(vars S, storeVarMap),QQ));
     use G;
     L := entries solution;
     T := apply(L,l->product apply(vectorVars,l,(i,j)->i^j));
-    gens ideal T_{0..numColumns vars ring I-1}
+    map(G,R,T_{0..numColumns vars ring I-1})
     )
+
+-- R = ZZ[x..z];
+-- I = ideal(x-y,y-z);
+-- binomialParameterization I;
+
 ----Temporary functions end;
 
 
@@ -1863,6 +1786,54 @@ document {
 	  "binomialAssociatedPrimes I",
           },
      SeeAlso => {binomialMinimalPrimes,cellularBinomialAssociatedPrimes}}
+ 
+document {
+    Key => {binomialBasis},
+    Headline => "generates binomial basis for an ideal",
+    Usage => "binomialBasis I",
+    Inputs => {
+	"I" => {"an ideal"}
+    },
+    Outputs => {
+	"a binomial basis in form of a list if I has a binomial basis. If ideal I does not have a binomial
+	basis, a message 'Error: the ideal is not binomial' will be printed out "},
+    EXAMPLE {
+	"R = QQ[x,y,z]",
+	"J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
+	"binomialBasis J",
+	"I = ideal (x^3+y^2+z,x+z)",
+	"binomialBasis I"
+	}
+}
+
+document {
+    Key => {binomialParameterization},
+    Headline => "Parameterization for the variety of prime Laurent binomial ideal",
+    Usage => "binomialParameterization I",
+    Inputs => {
+	"I" => {"a prime binomial ideal"}
+    },
+    Outputs => {
+	"a map, the parameterization map"},
+    "A simple example:",
+    EXAMPLE {
+	"R = QQ[x,y]",
+	"I = ideal(x-y)",
+	"p = binomialParameterization I",
+	"p.matrix"
+	},
+    "Another example:",
+    EXAMPLE {
+	"R = QQ[x,y,z,w]",
+	"I = ideal (x-7*y, y*z^2-2,x-3*w^3)",
+	"binomialIsPrime I",
+	"p = binomialParameterization I",
+	"p.matrix"
+	},
+    	Caveat => {"The current implementation can only handle prime binomial ideals",
+	     " in ring of characteristic 0 whose variety has at least one rational point."}
+}
+
 
 document {
      Key => {binomialIsPrime,
@@ -1982,25 +1953,6 @@ document {
 	  "isUnital ideal (x^2)"
           },
      SeeAlso => {isCellular}}
- 
-document {
-    Key => {binomialBasis},
-    Headline => "generates binomial basis for an ideal",
-    Usage => "binomialBasis I",
-    Inputs => {
-	"I" => {"an ideal"}
-    },
-    Outputs => {
-	"a binomial basis in form of a list if I has a binomial basis. If ideal I does not have a binomial
-	basis, a message 'Error: the ideal is not binomial' will be printed out "},
-    EXAMPLE {
-	"R = QQ[x,y,z]",
-	"J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
-	"binomialBasis J",
-	"I = ideal (x^3+y^2+z,x+z)",
-	"binomialBasis I"
-	}
-}
 
 -- input related functions
 document {
@@ -2337,7 +2289,7 @@ TEST ///
 R = QQ[x,y,z]
 assert(binomialBasis (ideal (x^3+y^2+z,x+z)) == null)
 assert(binomialBasis (ideal (x^2-x*y, x*y-y^2)) == (matrix{{y^2-x^2,x*y-x^2}}))
---assert((binomialBasis (ideal (x^2+x*y, z^2+x^2+x*y))) == (matrix{{z^2,x^2+x*y}}) )
+assert((binomialBasis (ideal (x^2+x*y, z^2+x^2+x*y))) == (matrix{{z^2,x^2+x*y}}) )
 ///
 
 end
