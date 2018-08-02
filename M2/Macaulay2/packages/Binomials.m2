@@ -28,7 +28,14 @@ newPackage(
 	Authors => {{
 		  Name => "Thomas Kahle",
 		  Email => "thomas.kahle@jpberlin.de",
-		  HomePage => "http://www.thomas-kahle.de"}},
+		  HomePage => "http://www.thomas-kahle.de"},
+	  {	  
+		  Name => "Ruilong Zhuang",
+		  Email => "zhuangr@whitman.edu"},
+	  {
+		  Name => "Alexandru Iosif",
+		  Email => "alexandru.iosif@ovgu.de",
+		  HomePage => "https://alexandru-iosif.github.io"}},
     	Headline => "Specialized routines for binomial ideals",
 	PackageImports => {"FourTiTwo", "Cyclotomic"},
 	Certification => {
@@ -1801,14 +1808,15 @@ document {
     Outputs => {
 	{"a binomial basis of the input if it exists. Otherwise, error."} },
     "This function computes a binomial basis of an ideal. If the ideal has no binomial basis,
-     it prints an error",
+     it prints an error.",
     EXAMPLE {
 	"R = QQ[x,y,z]",
-	"J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
-	"binomialBasis J",
-	"I = ideal (x^3+y^2+z,x+z)",
-	"binomialBasis I"
-	}
+	"I = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
+	"binomialBasis I",
+	"J = ideal (x^3+y^2+z,x+z)",
+	"binomialBasis J"
+	},
+    SeeAlso => {isBinomial, binomialSolve}
 }
 
 document {
@@ -1817,11 +1825,11 @@ document {
     Usage => "binomialParameterization I",
     Inputs => {
 	"I" => {"a prime binomial ideal containing no monomial. The set of generators of the input
-	    needs to be minimal and each of them should have exactly two monomials"}
+	    needs to be minimal and each of them should have exactly two monomials."}
     },
     Outputs => {
 	{"a map, the parameterization map"} },
-    "This function returns a monomial parameterization of a prime binomial ideal",
+    "This function returns a monomial parameterization of a prime binomial ideal.",
     EXAMPLE {
 	"R = QQ[x,y]",
 	"I = ideal(x-y)",
@@ -1835,9 +1843,10 @@ document {
 	"binomialIsPrime I",
 	"p = binomialParameterization I",
 	"p.matrix"
-	},
-    	Caveat => {"The current implementation can only handle prime binomial ideals 
-	    in rings of characteristic 0 whose variety has at least one rational point."}
+	},    
+    Caveat => {"The current implementation can only handle prime binomial ideals 
+	in rings of characteristic 0 whose varieties have at least one rational point."},
+	SeeAlso => {binomialSolve}
 }
 
 
@@ -1958,9 +1967,9 @@ document {
 	  "isUnital ideal (x+z)",
 	  "isUnital ideal (x^2)"
           },
-     "In the following example, the Groebner free method fails to detect binomiality as 
-     after a homogenization of the generators, the ideal is not binomial anymore.
-     (Example 4.1 in Conradi, Kahle, 2015)",
+     "In the following example, the Groebner free method fails to detect binomiality as, 
+     after a homogenization of the generators, the ideal is not binomial anymore
+     (Example 4.1 in Conradi, Kahle, 2015).",
      EXAMPLE {
 	  "R = QQ[a,b,x,y]",
 	  "I = ideal(a*b-x,a*b-y,x+y+1)",
@@ -2157,7 +2166,7 @@ document{
 	[isBinomial,GroebnerFree]},
     Headline => "Groebner Free method",
     "GroebnerFree is a method that tests whether an ideal is binomial without computing Groebner
-    basis. The default option is true meaning that the computation of Groebner Basis can be omitted.
+    bases. The default option is true meaning that the computation of Groebner Basis can be omitted.
     If the option is set to be 'false', then isBinomial computes the Groebner basis to detect whether
     the ideal is binomial."}
 
