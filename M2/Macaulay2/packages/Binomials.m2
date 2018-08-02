@@ -351,7 +351,14 @@ isBinomial = method (Options => {GroebnerFree => true})
 isBinomial Ideal := Ideal => o -> I -> (
      -- Checking binomiality with a reduced gb.
      if o#GroebnerFree  then (
-	 return (isBinomialGroebnerFree I)#0;
+	 p := (isBinomialGroebnerFree I)#0;
+	 if (isHomogeneous I == false and p == false) then (
+	     print "Groebner free method failed. Starting Groebner basis computation...";
+	     return isBinomial(I, GroebnerFree => false);
+	     ) 
+	 else (
+	     return p;
+	     );
      )
      else (
          ge := flatten entries gens gb I;
@@ -386,6 +393,7 @@ binomialBasis = I -> (
     	)
     else (
     	if resultT#0 == false then (
+	    print "Groebner free method failed. Starting Groebner basis computation...";
 	    ge := flatten entries gens gb I;
 	    for g in ge do (
                 if #(terms g) > 2 then (
@@ -485,14 +493,13 @@ isBinomialGroebnerFree = I ->(
     Id:=ideal(0);--unnecesary if remove Id in <<F = set flatten
     --entries gens substitute(ideal toList F+Id,R);>>
     if (isHomogeneous ideal(Fl)) == false then(
-	 --print "Error: Non-homogeneuos ideals"; return;
 	 use R;
 	 T := toList(set flatten entries vars R + set{tttt_0});
 	 R = coefficientRing R [T];
 	 IinR := sub(I,R);
 	 S = R;
-	 HomogenizedI := homogenize (IinR, tttt_0);
-	 F = set flatten entries gens HomogenizedI;
+	 HomogenizedI := homogenize (gens IinR, tttt_0);
+	 F = set flatten entries HomogenizedI;
 	 );
     while (F=!=set{} and F=!=set{0_R}) do(
 	Fmin=flatten entries gensMinimalDegree(ideal toList F);
@@ -520,9 +527,6 @@ binomialParameterization = I ->(
     idealList := flatten entries gens I;
     exponentList := {};
     --check whether ideal is prime
-    if (isBinomial I == false) then (
-	error "Sorry, only implemented for binomial ideals";
-	);
     if (binomialIsPrime I == false) then (
 	error "Sorry, only implemented for prime binomial ideals";
 	);
@@ -530,7 +534,7 @@ binomialParameterization = I ->(
     for e in idealList do(
 	coeff := flatten entries (coefficients e)#1;
 	if (length coeff =!= 2) then (
-	    error "There is a monomial among the generators";
+	    error "One of the generators does not have exactly two monomials";
 	    );
 	exponentList = exponentList|{(exponents e)#0 - (exponents e)#1|{-coeff#1/coeff#0}};
         );
@@ -1795,8 +1799,9 @@ document {
 	"I" => {"an ideal"}
     },
     Outputs => {
-	"a binomial basis in form of a list if I has a binomial basis. If ideal I does not have a binomial
-	basis, a message 'Error: the ideal is not binomial' will be printed out "},
+	{"a binomial basis of the input if it exists. Otherwise, error."} },
+    "This function computes a binomial basis of an ideal. If the ideal has no binomial basis,
+     it prints an error",
     EXAMPLE {
 	"R = QQ[x,y,z]",
 	"J = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
@@ -1811,11 +1816,12 @@ document {
     Headline => "Parameterization for the variety of prime Laurent binomial ideal",
     Usage => "binomialParameterization I",
     Inputs => {
-	"I" => {"a prime binomial ideal"}
+	"I" => {"a prime binomial ideal containing no monomial. The set of generators of the input
+	    needs to be minimal and each of them should have exactly two monomials"}
     },
     Outputs => {
-	"a map, the parameterization map"},
-    "A simple example:",
+	{"a map, the parameterization map"} },
+    "This function returns a monomial parameterization of a prime binomial ideal",
     EXAMPLE {
 	"R = QQ[x,y]",
 	"I = ideal(x-y)",
@@ -1830,8 +1836,8 @@ document {
 	"p = binomialParameterization I",
 	"p.matrix"
 	},
-    	Caveat => {"The current implementation can only handle prime binomial ideals",
-	     " in ring of characteristic 0 whose variety has at least one rational point."}
+    	Caveat => {"The current implementation can only handle prime binomial ideals 
+	    in rings of characteristic 0 whose variety has at least one rational point."}
 }
 
 
@@ -1941,7 +1947,7 @@ document {
      Outputs => {
           {"true if I is binomial, or unital respectively using 
 	      GroebnerFree method if not specified."}},
-     "Function isBinomial returns 'true' if the ideal is binomial or unital using the ", TO GroebnerFree, " option.",      
+     "Function isBinomial returns 'true' if the ideal is binomial or unital. By default, ", TO GroebnerFree, " is set to be true.",      
      EXAMPLE {
 	  "R = QQ[x,y,z]",
 	  "isBinomial ideal(x^2)",
@@ -1952,6 +1958,19 @@ document {
 	  "isUnital ideal (x+z)",
 	  "isUnital ideal (x^2)"
           },
+     "In the following example, the Groebner free method fails to detect binomiality as 
+     after a homogenization of the generators, the ideal is not binomial anymore.
+     (Example 4.1 in Conradi, Kahle, 2015)",
+     EXAMPLE {
+	  "R = QQ[a,b,x,y]",
+	  "I = ideal(a*b-x,a*b-y,x+y+1)",
+	  "isBinomial I",
+	  "binomialBasis I",
+	  "S = QQ[a,b,x,y,z]",
+	  "J = sub(I,S)",
+	  "J = ideal homogenize(gens J,z)",
+	  "isBinomial J"
+	  },
      SeeAlso => {isCellular}}
 
 -- input related functions
@@ -2290,6 +2309,19 @@ R = QQ[x,y,z]
 assert(binomialBasis (ideal (x^3+y^2+z,x+z)) == null)
 assert(binomialBasis (ideal (x^2-x*y, x*y-y^2)) == (matrix{{y^2-x^2,x*y-x^2}}))
 assert((binomialBasis (ideal (x^2+x*y, z^2+x^2+x*y))) == (matrix{{z^2,x^2+x*y}}) )
+///
+
+TEST ///
+R = QQ[x,y,z]
+p = binomialParameterization ideal(x-y,y-z)
+S = ring p.matrix
+t = (vars S)_0_0
+assert(p === map(S,R,{t, t, t}))
+R = QQ[x,y,z,w]
+p = binomialParameterization ideal(x-7*y, y*z^2-2, x-3*w^3)
+S = ring p.matrix
+t = (vars S)_0_0
+assert(p === map(S,R,{2744/9*t^6, 392/9*t^6, 3/14*t^(-3), 14/3*t^2}))
 ///
 
 end
