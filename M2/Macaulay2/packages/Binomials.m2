@@ -557,7 +557,6 @@ binomialParameterization = I ->(
     i:= 0;
     storeVarMap := {};
     while (i < r) do (
-	storeVarMap = storeVarMap|{v_(i+1)_S => (exponentList#-1#i)};
 	i = i+1;
 	);
     --perform the substitution of constant term and compute the kernel to find parameterization
@@ -576,13 +575,6 @@ binomialParameterization = I ->(
     T := apply(L,l->product apply(vectorVars,l,(i,j)->i^j));
     map(G,R,T_{0..numColumns vars ring I-1})
     )
-
--- R = ZZ[x..z];
--- I = ideal(x-y,y-z);
--- binomialParameterization I;
-
-----Temporary functions end;
-
 
 
 isUnital = I -> (
