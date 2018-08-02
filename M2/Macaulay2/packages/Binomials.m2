@@ -528,6 +528,8 @@ isBinomialGroebnerFree = I ->(
 
 
 binomialParameterization = I ->(
+    R := ring I;
+    K := coefficientRing R;
     if (char ring I =!= 0) then (
 	error "Sorry, only implemented for characteristic 0";
 	);
@@ -540,6 +542,7 @@ binomialParameterization = I ->(
     --extract exponents into a matrix & put constant term at the last column
     for e in idealList do(
 	coeff := flatten entries (coefficients e)#1;
+	coeff = flatten entries sub (matrix{coeff}, coefficientRing ring I);
 	if (length coeff =!= 2) then (
 	    error "One of the generators does not have exactly two monomials";
 	    );
@@ -552,11 +555,12 @@ binomialParameterization = I ->(
 	error "The set of generators is not minimal.";
 	);
     v := symbol v;
-    R:=ring I; S:=R[v_1..v_r,MonomialOrder => Lex];
+    S:=R[v_1..v_r,MonomialOrder => Lex];
     exponentList = transpose exponentList;
     i:= 0;
     storeVarMap := {};
     while (i < r) do (
+	storeVarMap = storeVarMap|{v_(i+1)_S => (exponentList#-1#i)};
 	i = i+1;
 	);
     --perform the substitution of constant term and compute the kernel to find parameterization
@@ -568,8 +572,8 @@ binomialParameterization = I ->(
 	error "Sorry, only implemented for toric varieties with at least one rational point";
 	);
     t := symbol t;
-    G := QQ[t_1..t_(numColumns solution-r),MonomialOrder=>Lex,Inverses=>true];
-    vectorVars := flatten entries(vars G|sub(sub(vars S, storeVarMap),QQ));
+    G := K[t_1..t_(numColumns solution-r),MonomialOrder=>Lex,Inverses=>true];
+    vectorVars := flatten entries(vars G|sub(sub(vars S, storeVarMap),coefficientRing R));
     use G;
     L := entries solution;
     T := apply(L,l->product apply(vectorVars,l,(i,j)->i^j));
@@ -2297,7 +2301,7 @@ assert(binomialIsPrime ideal x^2 == false)
 assert(binomialIsPrime ideal (x^2-y^2) == false)
 assert(binomialIsPrime ideal (x-y) == true)
 ///
-
+    
 TEST ///
 R = QQ[x,y,z]
 assert(isBinomial (ideal(x+y+z),GroebnerFree=>false) == false)
@@ -2323,6 +2327,12 @@ p = binomialParameterization ideal(x-7*y, y*z^2-2, x-3*w^3)
 S = ring p.matrix
 t = (vars S)_0_0
 assert(p === map(S,R,{2744/9*t^6, 392/9*t^6, 3/14*t^(-3), 14/3*t^2}))
+K = frac(QQ[a,b])
+R = K[x,y]
+p = binomialParameterization ideal(a*x-b*y)
+S = ring p.matrix
+t = (vars S)_0_0
+assert(p === map(S,R,{b/a*t,t}))
 ///
 
 end
@@ -2331,6 +2341,16 @@ restart
 uninstallPackage "Binomials"
 installPackage "Binomials"
 check "Binomials"
+
+K=frac(QQ[k1,k2])
+R=K[x,y]
+I=ideal(k1*x^2-k2*y)
+binomialParameterization I
+
+R=QQ[x,y,z]
+I=ideal(2*x-2*y)
+binomialParameterization I
+
 
 R = QQ[x,y,z]
 I = ideal (x^3+y^2,x+z)
