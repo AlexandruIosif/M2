@@ -29,7 +29,7 @@ newPackage(
 		  Name => "Thomas Kahle",
 		  Email => "thomas.kahle@jpberlin.de",
 		  HomePage => "http://www.thomas-kahle.de"},
-	  {	  
+	  {
 		  Name => "Ruilong Zhuang",
 		  Email => "zhuangr@whitman.edu"},
 	  {
@@ -52,7 +52,7 @@ newPackage(
 	     "volume URI" => "http://j-sag.org/Volume4/"
 	     }
     	)
-   
+
 export {
      -- 'Official' functions
      "binomialPrimaryDecomposition",
@@ -113,7 +113,7 @@ export {
      "ReturnPChars", -- for cellularBinomialIsPrimary
      "ReturnCellVars", -- for binomialCellularDecomposition
      "GroebnerFree", -- for isBinomial
-     
+
      --Types
      "PartialCharacter"--HashTable
      }
@@ -355,27 +355,36 @@ randomBinomialIdeal = (R,numge,maxdeg, maxwidth, homog) -> (
 
 isBinomial = method (Options => {GroebnerFree => true})
 isBinomial Ideal := Ideal => o -> I -> (
-     -- Checking binomiality with a reduced gb.
-     if o#GroebnerFree  then (
-	 p := (isBinomialGroebnerFree I)#0;
-	 if (not isHomogeneous I and not p) then (
-	     print "Groebner free method failed. Starting Groebner basis computation...";
-	     return isBinomial(I, GroebnerFree => false);
-	     ) 
-	 else (
-	     return p;
-	     );
-     )
-     else (
-         ge := flatten entries gens gb I;
-         for g in ge do (
+    --Checks binomiality of an ideal with options of using Groebner free method
+    --Input: an ideal I
+    --Output: a boolean value
+    --Option: GroebnerFree: By default, it sets to be true, then use Groebner free 
+    --method to detect binomiality. If it sets to be false, then compute redeced gb.
+    if o#GroebnerFree then (
+        p := (isBinomialGroebnerFree I)#0;
+        --if this inhomogeneous ideal gets a negative binomiality from using Groebner free method
+        --then we need to check its reduced gb to confirm its binomiality
+        if (not isHomogeneous I and not p) then (
+            print "Groebner free method failed. Starting Groebner basis computation...";
+            return isBinomial(I, GroebnerFree => false);--start computing gb
+            )
+        else (
+            return p;--affirmative for homogenous cases
+            );
+    )
+    else (
+        ge := flatten entries gens gb I;
+        for g in ge do (
             if #(terms g) > 2 then return false;
-	    );
-	 );
-     true)
+            );
+        );
+    true)
 
---the following function generates a binomial basis of an ideal if exists
 binomialBasis = I -> (
+    --this function generates a binomial basis of an ideal if exists
+    --Input: an ideal I
+    --Output: a binomial basis of the input if it exists. Otherwise, error. 
+    --The result is in form of matrix
     R:=ring I;
     S:=R;
     F:=set flatten entries gens I;
@@ -384,48 +393,47 @@ binomialBasis = I -> (
     resultT := isBinomialGroebnerFree I;
 
     if isHomogeneous ideal(Fl) then (
+        --For a homogeneous ideals, if the basis exists, we have it from gbFree method
         if not resultT#0 then (
             print "Error: the ideal is not binomial";
-	    return;
-	    )
+            return;
+            )
         else (
             return resultT#1;
-	    );
-    	)
+            );
+        )
     else (
-    	if not resultT#0 then (
-	    print "Groebner free method failed. Starting Groebner basis computation...";
-	    ge := flatten entries gens gb I;
-	    for g in ge do (
+        --For inhomogeneous ideals, the negative answer on binomiality indicates
+        --the necessity of computing gb to check. Otherwise, we dehomogenize the
+        --basis which cames from the algorithm
+        if not resultT#0 then (
+            print "Groebner free method failed. Starting Groebner basis computation...";
+            ge := flatten entries gens gb I;
+            for g in ge do (
                 if #(terms g) > 2 then (
-		    print "Error: the ideal is not binomial";
-		    use R;
-		    return null;
-		    )
-	    	);	
-	    return matrix {ge};
-	    )
-    	else(
-	    f := map (R,ring resultT#1,flatten entries vars R | {1_R});
-	    J := f(resultT#1);
-	    use R;
-	    return J;
-	    );
-     	);)
+                    print "Error: the ideal is not binomial";
+                    use R;
+                    return null;
+                    )
+                );
+            return matrix {ge};
+            )
+        else(
+            f := map (R,ring resultT#1,flatten entries vars R | {1_R});--dehomogenization
+            J := f(resultT#1);
+            use R;
+            return J;
+            );
+        );)
 
---the follwong returns the row echelon form of a matrix
 reducedRowEchelon = C ->(
+    --this function returns the row echelon form of a matrix
     c:=numColumns C;
     variable := symbol variable;
     R:=ring (C_(0,0)); S:=R[variable_1..variable_c,MonomialOrder => Lex];
     C=sub(transpose(coefficients(matrix {flatten entries gens gb ideal flatten entries (sub(C,S)*transpose(vars S))},
 		Monomials=> flatten entries vars S))_1,R);
-    C;
-    M := {};
-    for e in entries C do (
-        M = {e}|M;
-    	);
-    matrix M
+    matrix reverse entries C
     )
 
 --Not implemented yet:
@@ -436,118 +444,133 @@ reducedRowEchelon = C ->(
 --     S:=R/I;
 --     S)
 
---Computes Fmin:
 gensMinimalDegree = F ->(
+    --Computes Fmin
     Fl:=flatten entries gens F;
     mindegree:=min(flatten(degrees (ideal (Fl))));
     l:=#Fl -1;
     Fmin:=set{};
     for i from 0 to l do(
-	if first degree Fl_(i) == mindegree then Fmin = Fmin + set{Fl_(i)};
-	);
+        if first degree Fl_(i) == mindegree then Fmin = Fmin + set{Fl_(i)};
+        );
     Fmin=matrix{toList Fmin};
     Fmin)
 
---detects whether a matrix has at most two non zero entries in each row
 isSupportOfRowsAtMostTwo = C ->(
+    --detects whether a matrix has at most two non zero entries in each row
     lead:=0;
-	for r from 0 to numRows C - 1 do(
-		lead=0;
-		for c from 0 to numColumns C - 1 do(
-			if C_(r,c) !=0 then lead=lead+1;
-			if lead > 2 then return false;
-			);
-		);
-	    true)
+    for r from 0 to numRows C - 1 do(
+        lead=0;
+        for c from 0 to numColumns C - 1 do(
+            if C_(r,c) !=0 then lead=lead+1;
+            if lead > 2 then return false;
+            );
+        );
+    true)
 
-isBinomialGroebnerFree = I ->(    
+isBinomialGroebnerFree = I ->(
+    --detecting Binomiality using Groebner Free method.
+    --Implements algorithm 3.3 in [CK15] and part of Recipe 4.5 in [CK15]
+    --Input: an ideal I
+    --Output: a list consisting of a boolean value indicating the binomality 
+    --of the given ideal and its binomial basis 
     R:=ring I;
     S:=R;
     F:=set flatten entries gens I;
-    Fl:=toList F;
     A:=matrix{{}};
     M:=matrix{{}};
     Fmin:={};
     B:={};
     d := symbol d;
     tttt := symbol tttt;
-    Id:=ideal(0);
-    if (not isHomogeneous ideal(Fl)) then(
-	 use R;
-	 T := toList(set flatten entries vars R + set{tttt_0});
-	 R = coefficientRing R [T];
-	 IinR := sub(I,R);
-	 S = R;
-	 HomogenizedI := homogenize (gens IinR, tttt_0);
-	 F = set flatten entries HomogenizedI;
-	 );
+    Id := ideal(0);
+    --homogenize the given ideal from recipe 4.5 in [CK15]
+    if (not isHomogeneous I) then(
+        use R;
+        T := toList(set flatten entries vars R + set{tttt_0});
+        R = coefficientRing R [T];
+        IinR := sub(I,R);
+        S = R;
+        HomogenizedI := homogenize (gens IinR, tttt_0);
+        F = set flatten entries HomogenizedI;
+        );
+    --implementation of algorithm 3.3 in [CK15]
     while (F=!=set{} and F=!=set{0_R}) do(
-	Fmin=flatten entries gensMinimalDegree(ideal toList F);
-        (M,A)=coefficients (matrix{Fmin}, Monomials =>
-	     toList set flatten entries monomials matrix{toList F});
-	A= reducedRowEchelon transpose (A);
-	M=transpose M;
-	if not isSupportOfRowsAtMostTwo(A) then return {false,{}};
-	B=B|flatten entries sub(sub(A*M,R),S);
-	d=(degree (A*M)_0_0)_0;
-	F=F-(set Fmin);
-	if F === set{} then return {true, matrix{B}}; --this avoids the next step in case F is empty
-	R=R/(ideal flatten entries (A*M));
-	F = set flatten entries gens sub(ideal toList F+Id,R);
-	F=F-set{0_R};);
-    {true,{}})     
-    
+        Fmin = flatten entries gensMinimalDegree(ideal toList F);
+        (M,A) = coefficients (matrix{Fmin}, Monomials =>
+	    toList set flatten entries monomials matrix{toList F});
+        A = reducedRowEchelon transpose A;
+        M = transpose M;
+        if not isSupportOfRowsAtMostTwo(A) then return {false, {}};
+        B = B|flatten entries sub(sub(A*M,R),S);
+        d = (degree (A*M)_0_0)_0;
+        F = F-(set Fmin);
+        if F === set{} then return {true, matrix{B}}; --this avoids the next step in case F is empty
+        R = R/(ideal flatten entries (A*M));
+        F = set flatten entries gens sub(ideal toList F+Id,R);
+        F = F-set{0_R};);
+    {true,{}})
+
 binomialParameterization = I ->(
+    --parameterize an pure prime binomial ideal over a field
+    --Input: a prime binomial ideal containing no monomial.-
+    --The set of generators of the input needs to be minimal and
+    --each of them should have exactly two monomials.
+    --Output: a map. the parameterization map
     R := ring I;
     K := coefficientRing R;
     if (char ring I =!= 0) then (
-	error "Sorry, only implemented for characteristic 0";
-	);
+        error "Sorry, only implemented for characteristic 0";
+        );
     idealList := flatten entries gens I;
     exponentList := {};
     --check whether ideal is prime
     if not binomialIsPrime I then (
-	error "Sorry, only implemented for prime binomial ideals";
-	);
+        error "Sorry, only implemented for prime binomial ideals";
+        );
+
     --extract exponents into a matrix & put constant term at the last column
     for e in idealList do(
-	coeff := flatten entries (coefficients e)#1;
-	coeff = flatten entries sub (matrix{coeff}, coefficientRing ring I);
-	if (length coeff =!= 2) then (
-	    error "One of the generators does not have exactly two monomials";
-	    );
-	exponentList = exponentList|{(exponents e)#0 - (exponents e)#1|{-coeff#1/coeff#0}};
+        coeff := flatten entries (coefficients e)#1;
+        coeff = flatten entries sub (matrix{coeff}, coefficientRing ring I);
+        if (length coeff =!= 2) then (
+            error "One of the generators does not have exactly two monomials";
+            );
+        exponentList = exponentList|{(exponents e)#0 - (exponents e)#1|{-coeff#1/coeff#0}};
         );
     exponentMatrix := matrix exponentList;
+
     --store the mapping from v_i to i-th constant term of the binomials
     r := numRows exponentMatrix;
     if (rank exponentMatrix_{0..(numColumns exponentMatrix-2)} =!= r) then (
-	error "The set of generators is not minimal.";
-	);
+        error "The set of generators is not minimal.";
+        );
     v := symbol v;
     S:=R[v_1..v_r,MonomialOrder => Lex];
     exponentList = transpose exponentList;
     i:= 0;
     storeVarMap := {};
     while (i < r) do (
-	storeVarMap = storeVarMap|{v_(i+1)_S => (exponentList#-1#i)};
-	i = i+1;
-	);
+        storeVarMap = storeVarMap|{v_(i+1)_S => (exponentList#-1#i)};
+        i = i+1;
+        );
+
     --perform the substitution of constant term and compute the kernel to find parameterization
     exponentList = exponentList_{0..(length exponentList-2)};
     exponentMatrix = matrix( transpose (exponentList|entries (id_(ZZ^r)*-1)));
     solution := gens gb ker exponentMatrix;
-    --check diagonal entries for v's
+    --check diagonal entries of new adding variables to make sure it can be parameterize
     if (solution_{numColumns solution-r..numColumns solution-1}^{numRows solution-r..numRows solution-1} =!= id_(ZZ^r)) then (
-	error "Sorry, only implemented for toric varieties with at least one rational point";
-	);
+        error "Sorry, only implemented for toric varieties with at least one rational point";
+        );
     t := symbol t;
     G := K[t_1..t_(numColumns solution-r),MonomialOrder=>Lex,Inverses=>true];
     vectorVars := flatten entries(vars G|sub(sub(vars S, storeVarMap),coefficientRing R));
     use G;
     L := entries solution;
+    --get parameterization from exponents in the list
     T := apply(L,l->product apply(vectorVars,l,(i,j)->i^j));
-    map(G,R,T_{0..numColumns vars ring I-1})
+    map(G,R,T_{0..numColumns vars ring I-1}) --return the map
     )
 
 isUnital = I -> (
@@ -561,7 +584,7 @@ isUnital = I -> (
 	  return false;
 	  );
      true)
-     
+
 nonCellstdm = {CellVariables=>null} >> o -> I -> (
      -- extracts the (finite) set of nilpotent monomials 
      -- modulo a cellular binomial ideal.
@@ -573,7 +596,7 @@ nonCellstdm = {CellVariables=>null} >> o -> I -> (
      -- This use of baseName is intended to fix a problem where the variables in cv 
      -- are actual variables of a ring over a field extension.
      ncv := value \ toList (set (baseName \ (gens R)) - baseName \ cv);
-     
+
      -- We map I to the subring: kk[ncv]
      CoeffR := coefficientRing R;
      S := CoeffR(monoid [ncv]);
@@ -582,7 +605,6 @@ nonCellstdm = {CellVariables=>null} >> o -> I -> (
 
 maxNonCellstdm = {CellVariables=>null} >> o -> I -> (
      -- Computes the maximal monomials in the nilpotent variables
-
      cv := cellVars(I, CellVariables=>o#CellVariables);
      nm := flatten entries nonCellstdm (I,CellVariables=>cv);
      -- The following code extracts the maximal elements in a list of monomials 
@@ -620,7 +642,6 @@ idealFromCharacter (Ring, PartialCharacter) := Ideal => (R, pc) -> (
      -- The columns of A should contain exponent vectors of generators
      -- The vector c contains the corresponding coefficients which must lie
      -- in the coefficient ring of R.
-     
      var := gens R;
      if pc#"L" == 0 then return ideal 0_R;
      cols := null;
@@ -632,7 +653,6 @@ idealFromCharacter (Ring, PartialCharacter) := Ideal => (R, pc) -> (
      if pc#"L" == idmat then (
 	  -- If A is the unit matrix we are lucky,
 	  -- no saturation is needed.
-
 	  -- We coerce the coefficients to R:
 	  c = apply (pc#"c", a -> (sub (a,R)));
      	  cols = entries transpose pc#"L";
