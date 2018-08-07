@@ -540,7 +540,8 @@ binomialParameterization = I ->(
         );
     exponentMatrix := matrix exponentList;
 
-    --store the mapping from v_i to i-th constant term of the binomials
+    --characters are enconded as variables v_i in a ring S
+    --storeVarMap maps v_i to the i-th character
     r := numRows exponentMatrix;
     if (rank exponentMatrix_{0..(numColumns exponentMatrix-2)} =!= r) then (
         error "The set of generators is not minimal.";
@@ -555,11 +556,13 @@ binomialParameterization = I ->(
         i = i+1;
         );
 
-    --perform the substitution of constant term and compute the kernel to find parameterization
+    --compute the kernel of exponentMatrix to find parameterization and
+    --perform the substitution of v_i by the i-th character
     exponentList = exponentList_{0..(length exponentList-2)};
     exponentMatrix = matrix( transpose (exponentList|entries (id_(ZZ^r)*-1)));
     solution := gens gb ker exponentMatrix;
-    --check diagonal entries of new adding variables to make sure it can be parameterize
+    --check diagonal entries of new adding variables to make sure it can be parameterized:
+    --the part corresponding to v_i should be diagonalizable with 1 in the diagonal
     if (solution_{numColumns solution-r..numColumns solution-1}^{numRows solution-r..numRows solution-1} =!= id_(ZZ^r)) then (
         error "Sorry, only implemented for toric varieties with at least one rational point";
         );
