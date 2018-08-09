@@ -366,7 +366,7 @@ isBinomial Ideal := Ideal => o -> I -> (
         --if this inhomogeneous ideal gets a negative binomiality from using Groebner free method
         --then we need to check its reduced gb to confirm its binomiality
         if (not isHomogeneous I and not p) then (
-            print "Groebner free method failed. Starting Groebner basis computation...";
+            print "Groebner free method is unable to detect its binomiality.\nStarting computation of its Groebner basis...\n";
             return isBinomial(I, GroebnerFree => false);--start computing gb
             )
         else (
@@ -408,7 +408,7 @@ binomialBasis = I -> (
         --the necessity of computing gb to check. Otherwise, we dehomogenize the
         --basis which cames from the algorithm
         if not resultT#0 then (
-            print "Groebner free method failed. Starting Groebner basis computation...";
+            print "Groebner free method is unable to detect its binomiality.\nStarting computation of its Groebner basis...\n";
             ge := flatten entries gens gb I;
             for g in ge do (
                 if #(terms g) > 2 then (
@@ -588,7 +588,6 @@ monomialParameterization = I ->(
     )
 
 -- parameterizationKernel = p -> (
--- 1
 --     R := source p;
 --     x := flatten entries vars R;
 --     K := coefficientRing R;
@@ -1817,36 +1816,15 @@ document {
      SeeAlso => {binomialMinimalPrimes,cellularBinomialAssociatedPrimes}}
 
 document {
-    Key => {binomialBasis},
-    Headline => "generates binomial basis for an ideal",
-    Usage => "binomialBasis I",
-    Inputs => {
-        "I" => {"an ideal"}
-    },
-    Outputs => {
-        {"a binomial basis of the input if it exists. Otherwise, error."} },
-    "This function computes a binomial basis of an ideal. If the ideal has no binomial basis, 
-    it prints an error.",
-    EXAMPLE {
-        "R = QQ[x,y,z]",
-        "I = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
-        "binomialBasis I",
-        "J = ideal (x^3+y^2+z,x+z)",
-        "binomialBasis J"
-        },
-    SeeAlso => {isBinomial, binomialSolve}}
-
-document {
     Key => {monomialParameterization},
     Headline => "Parameterization for the variety of prime Laurent binomial ideal",
     Usage => "monomialParameterization I",
     Inputs => {
-        "I" => {"a prime binomial ideal containing no monomial. The set of generators of the input
-            needs to be minimal and each of them should have exactly two monomials."}
+        "I" => {"a prime Laurent binomial ideal. The generators of ideal I should be binomial."}
     },
     Outputs => {
         {"a map, the parameterization map"} },
-    "This function returns a monomial parameterization of a prime binomial ideal.",
+    "This function returns a monomial parameterization of a prime Laurent binomial ideal.",
     EXAMPLE {
         "R = QQ[x,y]",
         "I = ideal(x-y)",
@@ -1861,8 +1839,9 @@ document {
         "p = monomialParameterization I",
         "p.matrix"
         },    
-        Caveat => {"The current implementation can only handle prime binomial ideals 
-        in rings of characteristic 0 whose varieties have at least one rational point."},
+        Caveat => {"The current implementation can only handle prime Laurent binomial ideals 
+        in rings of characteristic 0. The option " , TO Inverses, " of the ring of the input ideal 
+	needs to be false."},
         SeeAlso => {binomialSolve}}
 
 document {
@@ -1960,6 +1939,31 @@ document {
      SeeAlso => {cellularBinomialAssociatedPrimes,binomialCellularDecomposition}}
 
 document {
+    Key => {binomialBasis},
+    Headline => "generates binomial basis for an ideal",
+    Usage => "binomialBasis I",
+    Inputs => {
+        "I" => {"an ideal"}
+    },
+    Outputs => {
+        {"a binomial basis of the input if it exists. Otherwise, it prints an error."} },
+    "This function computes a binomial basis of an ideal. If the ideal is not binomial, 
+    it prints an error. This function automatically use ", TO GroebnerFree, " method to 
+    find the binomial basis. For an inhomogeneous ideal, the method first homogenizes the 
+    generators of the ideal. If the method fails to find a binomial basis after this homogenization, 
+    the computation of a Gröbner basis starts with a message displayed.",
+    EXAMPLE {
+        "R = QQ[x,y,z]",
+        "I = ideal (x^2+x*y, z^2+x^2, x*z+y*z)",
+        "binomialBasis I",
+        "J = ideal (x^3+y^2+z,x+z)",
+        "binomialBasis J"
+        },
+    SeeAlso => {isBinomial, binomialSolve},
+    Caveat => {"It is not guaranteed to return a minimal generating set of the ideal. It is also
+    not guaranteed to return a Gröbner basis of the ideal."}}
+
+document {
     Key => {isBinomial,
         isUnital, (isBinomial,Ideal)},
     Headline => "testing for unital binomial ideals",
@@ -1967,9 +1971,13 @@ document {
     Inputs => {
         "I" => {"an ideal"}},
     Outputs => {
-        {"true if I is binomial, or unital respectively using 
+        {"true if I is binomial, or unital respectively. Function isBinomial uses 
         GroebnerFree method if not specified."}},
-    "Function isBinomial returns 'true' if the ideal is binomial or unital. By default, ", TO GroebnerFree, " is set to be true.",      
+    "Function isBinomial returns 'true' if the ideal is binomial. By default, "
+    , TO GroebnerFree, " is set to be true for isBinomial. For an inhomogeneous ideal, the Gröbner
+    free method first homogenizes the generators of the ideal. If the method returns false
+    after this homogenization, the computation of a Gröbner basis starts with a message displayed. 
+    Function isUnital returns 'true' if the ideal is unital.",      
     EXAMPLE {
         "R = QQ[x,y,z]",
         "isBinomial ideal(x^2)",
@@ -1979,8 +1987,9 @@ document {
         "isUnital ideal (x-z,z-y)",
         "isUnital ideal (x+z)",
         "isUnital ideal (x^2)"},
-    "In the following example, the Gröbner free method fails to detect binomiality as, 
-    after a homogenization of the generators, the ideal is not binomial anymore (see Example 4.1 in [CK15]).",
+    "In the following example, the Gröbner free method is unable to detect binomiality as, 
+    after a homogenization of the generators, the ideal is not binomial anymore 
+    (see Example 4.1 in [CK15]).",
     EXAMPLE {
         "R = QQ[a,b,x,y]",
         "I = ideal(a*b-x,a*b-y,x+y+1)",
@@ -2185,10 +2194,12 @@ document{
     Key => {GroebnerFree,
         [isBinomial,GroebnerFree]},
     Headline => "Groebner Free method",
-    "GroebnerFree is a method that tests whether an ideal is binomial without computing Gröbner
-    bases. The default option is true meaning that the computation of Gröbner Basis can be omitted.
-    If the option is set to be 'false', then isBinomial computes the Gröbner basis to detect whether
-    the ideal is binomial."}
+    "GroebnerFree is a method that tests whether a homogeneous ideal I is binomial without computing Gröbner
+    basis of this ideal. If the default option is true, then the computation of Gröbner Basis of the ideal
+    can be omitted. If the option is set to be 'false', then isBinomial computes the Gröbner basis to detect whether
+    the ideal is binomial.",
+    Caveat => {"The Groebner Free method takes quotients of the ideal degree by degree in which may
+    involves some computations of Gröbner bases."}}
 
 document {
      Key => {ReturnCellVars,
