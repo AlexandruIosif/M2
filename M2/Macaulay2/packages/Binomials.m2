@@ -539,8 +539,11 @@ monomialParameterization = I ->(
     for e in idealList do(
         coeff := flatten entries (coefficients e)#1;
         coeff = flatten entries sub (matrix{coeff}, coefficientRing ring I);
-        if (length coeff =!= 2) then (
-            error "One of the generators does not have exactly two monomials";
+        if (length coeff > 2) then (
+            error "One of the generators is not binomial";
+            );
+        if (length coeff == 1) then (
+            error "Sorry, only implemented for prime binomial ideals";
             );
         exponentList = exponentList|{(exponents e)#0 - (exponents e)#1|{-coeff#1/coeff#0}};
         );
