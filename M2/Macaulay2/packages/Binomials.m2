@@ -386,8 +386,8 @@ binomialBasis = I -> (
     --Input: an ideal I
     --Output: a binomial basis of the input if it exists. Otherwise, error. 
     --The result is in form of matrix
-    R:=ring I;
-    S:=R;
+    R := ring I;
+    S := R;
     F:=set flatten entries gens I;
     Fl:=toList F;
     tttt := symbol tttt;
@@ -419,7 +419,7 @@ binomialBasis = I -> (
                 );
             return matrix {ge};
             )
-        else(
+        else (
             f := map (R,ring resultT#1,flatten entries vars R | {1_R});--dehomogenization
             J := f(resultT#1);
             use R;
@@ -429,13 +429,12 @@ binomialBasis = I -> (
 
 reducedRowEchelon = C ->(
     --this function returns the row echelon form of a matrix
-    c:=numColumns C;
+    c := numColumns C;
     variable := symbol variable;
-    R:=ring (C_(0,0)); S:=R[variable_1..variable_c,MonomialOrder => Lex];
+    R:=ring (C_(0,0)); S := R[variable_1..variable_c,MonomialOrder => Lex];
     C=sub(transpose(coefficients(matrix {flatten entries gens gb ideal flatten entries (sub(C,S)*transpose(vars S))},
 		Monomials=> flatten entries vars S))_1,R);
-    matrix reverse entries C
-    )
+    matrix reverse entries C)
 
 --Not implemented yet:
 --When it will be implemented it will compute quotient rings by
@@ -447,23 +446,22 @@ reducedRowEchelon = C ->(
 
 gensMinimalDegree = F ->(
     --Computes Fmin
-    Fl:=flatten entries gens F;
-    mindegree:=min(flatten(degrees (ideal (Fl))));
-    l:=#Fl -1;
-    Fmin:=set{};
+    Fl := flatten entries gens F;
+    mindegree := min(flatten(degrees (ideal (Fl))));
+    l := #Fl -1;
+    Fmin := set{};
     for i from 0 to l do(
         if first degree Fl_(i) == mindegree then Fmin = Fmin + set{Fl_(i)};
         );
-    Fmin=matrix{toList Fmin};
-    Fmin)
+    matrix{toList Fmin})
 
 isSupportOfRowsAtMostTwo = C ->(
     --detects whether a matrix has at most two non zero entries in each row
-    lead:=0;
+    lead := 0;
     for r from 0 to numRows C - 1 do(
-        lead=0;
+        lead = 0;
         for c from 0 to numColumns C - 1 do(
-            if C_(r,c) !=0 then lead=lead+1;
+            if C_(r,c) !=0 then lead = lead+1;
             if lead > 2 then return false;
             );
         );
@@ -485,6 +483,7 @@ isBinomialGroebnerFree = I ->(
     d := symbol d;
     tttt := symbol tttt;
     Id := ideal(0);
+
     --homogenize the given ideal from recipe 4.5 in [CK15]
     if (not isHomogeneous I) then(
         use R;
@@ -495,6 +494,7 @@ isBinomialGroebnerFree = I ->(
         HomogenizedI := homogenize (gens IinR, tttt_0);
         F = set flatten entries HomogenizedI;
         );
+
     --implementation of algorithm 3.3 in [CK15]
     while (F=!=set{} and F=!=set{0_R}) do(
         Fmin = flatten entries gensMinimalDegree(ideal toList F);
@@ -509,26 +509,33 @@ isBinomialGroebnerFree = I ->(
         if F === set{} then return {true, matrix{B}}; --this avoids the next step in case F is empty
         R = R/(ideal flatten entries (A*M));
         F = set flatten entries gens sub(ideal toList F+Id,R);
-        F = F-set{0_R};);
+        F = F-set{0_R};
+	);
     {true,{}})
 
 monomialParameterization = I ->(
     --parameterize an pure prime binomial ideal over a field
-    --Input: a prime binomial ideal containing no monomial.-
-    --The set of generators of the input needs to be minimal and
-    --each of them should have exactly two monomials.
+    --Input: a prime binomial ideal (as an ideal of the Lauren ring) containing no monomial
+    --The set of generators should be in binomial form
     --Output: a map. the parameterization map
+
     R := ring I;
-    n := numColumns vars R;
-    K := coefficientRing R;
-    if (char ring I =!= 0) then (
+    
+    if (char R =!= 0) then (
         error "Sorry, only implemented for characteristic 0";
         );
+       
+    -- we check that I is not equal to R
+    if I == R then (
+        error "Sorry, only implemented for prime binomial ideals";
+        );
+    
+    n := numColumns vars R;
+    K := coefficientRing R;
     idealList := flatten entries gens I;
     exponentList := {};
-    --check whether ideal is prime
 
-    --extract exponents into a matrix & put constant term at the last column
+    --extract exponents into the rows of a matrix & put constant term at the last column
     for e in idealList do(
         coeff := flatten entries (coefficients e)#1;
         coeff = flatten entries sub (matrix{coeff}, coefficientRing ring I);
@@ -540,13 +547,12 @@ monomialParameterization = I ->(
     exponentMatrix := matrix exponentList;
 
     -- we check whether the ideal is prime
-    if image transpose sub(submatrix'(exponentMatrix,,{n}),ZZ) != image Lsat transpose sub(submatrix'(exponentMatrix,,{n}),ZZ) then (
+    if ( I == R or image transpose sub(submatrix'(exponentMatrix,,{n}),ZZ) != image Lsat transpose sub(submatrix'(exponentMatrix,,{n}),ZZ)) then (
         error "Sorry, only implemented for prime binomial ideals";
         );
 
     --characters are enconded as variables v_i in a ring S
     --storeVarMap maps v_i to the i-th character
-
     imageDimension := rank exponentMatrix_{0..(numColumns exponentMatrix-2)};
     i := 0;
     while (imageDimension =!= numRows exponentMatrix) do (
@@ -572,11 +578,6 @@ monomialParameterization = I ->(
     exponentList = exponentList_{0..(length exponentList-2)};
     exponentMatrix = sub(matrix( transpose (exponentList|entries (id_(ZZ^r)*-1))),ZZ);
     solution := gens gb ker exponentMatrix;
-    --check diagonal entries of new adding variables to make sure it can be parameterized:
-    --the part corresponding to v_i should be diagonalizable with 1 in the diagonal
-    -- if (solution_{numColumns solution-r..numColumns solution-1}^{numRows solution-r..numRows solution-1} != id_(ZZ^r)) then (
-    --     error "Sorry, only implemented for toric varieties with at least one rational point";
-    --     );
     t := symbol t;
     G := K[t_1..t_(numColumns solution-r),MonomialOrder=>Lex,Inverses=>true];
     vectorVars := flatten entries(vars G|sub(sub(vars S, storeVarMap),coefficientRing R));
@@ -587,22 +588,8 @@ monomialParameterization = I ->(
     map(G,R,T_{0..numColumns vars ring I-1}) --return the map
     )
 
+-- Not implemented yet. It should compute the kernel of the monomial parameterization.
 -- parameterizationKernel = p -> (
--- 1
---     R := source p;
---     x := flatten entries vars R;
---     K := coefficientRing R;
---     S := target p;
---     describe S
---     t := flatten entries vars S;
---     n := numColumns vars R;
---     RS := K[x|t, Inverses => true, MonomialOrder => Lex]
---     use RS;
--- 1/x_1
--- --    RS := (flattenRing (R[flatten entries vars S, MonomialOrder => Lex, Inverses => true]))#0;
---     t := flatten entries sub(matrix{flatten entries vars S},RS);
---      1/(t#0)
---     sub(eliminate(t_0,ideal (flatten entries (sub(vars R, RS) - sub((p.matrix)_{0..n-1},RS)))),R)
 --     )
 
 isUnital = I -> (
