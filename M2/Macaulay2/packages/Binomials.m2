@@ -24,18 +24,18 @@
 newPackage(
 	"Binomials",
 	Version => "1.2.2",
-	Date => "January 2018",
+	Date => "August 2018",
 	Authors => {{
 		  Name => "Thomas Kahle",
 		  Email => "thomas.kahle@jpberlin.de",
 		  HomePage => "http://www.thomas-kahle.de"},
 	  {
 		  Name => "Ruilong Zhuang",
-		  Email => "zhuangr@whitman.edu"},
+		  Email => "zhuangr@whitman.edu"}, --joined in 2018
 	  {
 		  Name => "Alexandru Iosif",
 		  Email => "alexandru.iosif@ovgu.de",
-		  HomePage => "https://alexandru-iosif.github.io"}},
+		  HomePage => "https://alexandru-iosif.github.io"}}, --joined in 2018
     	Headline => "Specialized routines for binomial ideals",
 	PackageImports => {"FourTiTwo", "Cyclotomic"},
 	Certification => {
