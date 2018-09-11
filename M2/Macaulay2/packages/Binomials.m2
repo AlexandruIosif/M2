@@ -361,6 +361,9 @@ isBinomial Ideal := Ideal => o -> I -> (
     --Output: a boolean value
     --Option: GroebnerFree: By default, it sets to be true, then use Groebner free 
     --method to detect binomiality. If it sets to be false, then compute redeced gb.
+    R := ring I;
+    setI := set flatten entries gens I;
+    if member(0_R, setI) then I = ideal toList (setI - set{0_R});
     if o#GroebnerFree then (
         p := (isBinomialGroebnerFree I)#0;
         --if this inhomogeneous ideal gets a negative binomiality from using Groebner free method
