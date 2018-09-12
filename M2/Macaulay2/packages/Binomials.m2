@@ -361,9 +361,6 @@ isBinomial Ideal := Ideal => o -> I -> (
     --Output: a boolean value
     --Option: GroebnerFree: By default, it sets to be true, then use Groebner free 
     --method to detect binomiality. If it sets to be false, then compute redeced gb.
-    R := ring I;
-    setI := set flatten entries gens I;
-    if member(0_R, setI) then I = ideal toList (setI - set{0_R});
     if o#GroebnerFree then (
         p := (isBinomialGroebnerFree I)#0;
         --if this inhomogeneous ideal gets a negative binomiality from using Groebner free method
@@ -432,6 +429,7 @@ binomialBasis = I -> (
 
 reducedRowEchelon = C ->(
     --this function returns the row echelon form of a matrix
+    if C == 0 then return C;
     c := numColumns C;
     variable := symbol variable;
     R:=ring (C_(0,0)); S := R[variable_1..variable_c,MonomialOrder => Lex];
@@ -450,7 +448,7 @@ reducedRowEchelon = C ->(
 gensMinimalDegree = F ->(
     --Computes Fmin
     Fl := flatten entries gens F;
-    mindegree := min(flatten(degrees (ideal (Fl))));
+    mindegree := min(apply (Fl, i -> first degree i));
     l := #Fl -1;
     Fmin := set{};
     for i from 0 to l do(
@@ -483,7 +481,6 @@ isBinomialGroebnerFree = I ->(
     M:=matrix{{}};
     Fmin:={};
     B:={};
-    d := symbol d;
     tttt := symbol tttt;
     Id := ideal(0);
 
@@ -507,7 +504,6 @@ isBinomialGroebnerFree = I ->(
         M = transpose M;
         if not isSupportOfRowsAtMostTwo(A) then return {false, {}};
         B = B|flatten entries sub(sub(A*M,R),S);
-        d = (degree (A*M)_0_0)_0;
         F = F-(set Fmin);
         if F === set{} then return {true, matrix{B}}; --this avoids the next step in case F is empty
         R = R/(ideal flatten entries (A*M));
